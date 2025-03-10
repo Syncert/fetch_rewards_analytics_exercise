@@ -1,3 +1,9 @@
+
+![Python](https://img.shields.io/badge/Python-3.x-blue?style=for-the-badge&logo=python)
+![SQL](https://img.shields.io/badge/SQL-SQL%20Queries-orange?style=for-the-badge&logo=database)
+![SQLite](https://img.shields.io/badge/SQLite-Database-lightblue?style=for-the-badge&logo=sqlite)  
+
+
 # Fetch Rewards Coding Exercise - Analytics Engineer
 
 ## First: Review Existing Unstructured Data and Diagram a New Structured Relational Data Model
@@ -10,7 +16,7 @@ In response to the 3 sample data files located in the directory file `json_data`
 
 I chose a relational database model for its ability to enforce data integrity, ensure efficient joins across normalized tables, and support scalable analytical queries. This structured approach allows for robust data transformations and streamlined reporting.
 
-![Alt Text](artifacts/Fetch%20Relational%20Model%20.pdf)
+![Alt Text](artifacts/fetch_relational_model.png)
 
 For the purposes of this exercise and enabling robust data analysis and engineering, I executed this database in a local SQLite database instance. In this repository, you will find the `.db` file if you navigate to the `sqlite_db` folder.
 
@@ -104,6 +110,38 @@ SELECT
 FROM silver_receipt_items sri;
 ```
 
+- **There appears to be a very low amount of receipt_item barcodes that match the brand database.**
+
+```sql
+select DISTINCT
+		sri.barcode,
+		count(sb.brand_code) as count
+from silver_receipt_items sri
+inner join silver_brands sb on sri.barcode = sb.barcode
+group by sri.barcode
+order by count desc
+```
+
+- **There are discrepancies between date_scanned and purchase_month on the receipts data. Wondering how these different dates are being gathered in the system?**
+
+```sql
+select 
+    strftime('%Y-%m', sr.purchase_date) AS purchase_month,
+	count(*) 
+from silver_receipts sr
+group by strftime('%Y-%m', sr.purchase_date)
+order by strftime('%Y-%m', sr.purchase_date) desc;
+```
+
+```sql
+select 
+    strftime('%Y-%m', sr.date_scanned) AS date_scanned,
+	count(*) 
+from silver_receipts sr
+group by strftime('%Y-%m', sr.date_scanned)
+order by strftime('%Y-%m', sr.date_scanned) desc
+```
+
 ---
 
 ## Fourth: Communicate with Stakeholders
@@ -113,21 +151,15 @@ Construct an email or Slack message that is understandable to a product or busin
 ### Answer:
 
 ```
-Hello [Business Leader],
-
+Hello [insert name of business leader here],
 Firstly, thank you for sharing this data with me. I’ve spent time reviewing it and would like an opportunity to better understand how the data is being gathered and what controls are in place for that data. Would you be willing to meet with me or put me in contact with subject matter experts on these topics?
 
-**Questions I have:**
-
-1. What is the lifecycle of a receipt from the moment of being scanned to its final storage in our data system? What different timestamps are recorded?
-2. How is receipt data scanned? What controls ensure data quality before ingestion?
-3. How do we maintain our barcode-brand database? Are quality assurance checks in place?
-
-I identified that **55.48% of receipt items have missing barcodes**, impacting our ability to track brand performance. Additionally, there are discrepancies between `date_scanned` and `purchase_month` fields that require further investigation.
-
-From a production standpoint, concurrent read/writes on the database may be a concern. I would need more information on how we plan to scale our compute resources based on application traffic.
-
-Appreciate your time and look forward to your response.
-
+Questions I have are:
+•	What is the lifecycle of a receipt from the moment of being scanned to a final “resting” place in our data? What different timestamps are being recorded in the system and how are they recorded?
+•	How is the receipt data being scanned? What kind of controls are in place to ensure that the data ingested is clean? 
+•	How are we gathering our barcode database that maintains the barcode associations? Are we doing any sort of Quality Assurance to make sure the relationship of barcode/brand is 1:1. Is there an automated effort in place to update these relationships and retire previous relationships in a historical table? I have identified that 55.48% of receipt items have missing barcodes, impacting our ability to track brand performance.
+•	Executing this workflow into production seems feasible from my initial analysis of the data provided. Concurrent read/writes on the database will be a concern. I will need more information on what scaling the platform offers and if we can find a way to scale our compute with the amount of traffic we are receiving from the application. 
+Appreciate your time on this matter and look forward to hearing back. 
 Best,
 Nicholas Kreuziger
+```
